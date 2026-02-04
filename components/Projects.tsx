@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { PROJECTS } from '../constants';
-import { Github, ExternalLink, Code, X, Layers, Filter, Cpu, Tag, Search, Sparkles, Terminal, Box, CheckCircle2 } from 'lucide-react';
+import { Github, ExternalLink, Code, X, Layers, Filter, Cpu, Tag, Search, Sparkles, Terminal, Box, CheckCircle2, Hash } from 'lucide-react';
 import { Project } from '../types';
 
 const ProjectCardSkeleton = () => (
@@ -47,7 +47,7 @@ const ScrollRevealCard: React.FC<ScrollRevealCardProps> = ({ project, idx, onSel
       },
       { 
         threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px' // Trigger slightly before the card fully enters
+        rootMargin: '0px 0px -50px 0px'
       }
     );
 
@@ -138,10 +138,27 @@ const Projects: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isModalImageLoading, setIsModalImageLoading] = useState(true);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Keyboard shortcut listener for focusing search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        setSelectedProject(null);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const allTags = useMemo(() => {
@@ -167,14 +184,6 @@ const Projects: React.FC = () => {
       });
     });
     return counts;
-  }, []);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedProject(null);
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
   useEffect(() => {
@@ -215,59 +224,81 @@ const Projects: React.FC = () => {
           </div>
         </div>
 
+        {/* Improved Search & Filter Controls */}
         <div className="mb-12 space-y-8 animate-slide-up [animation-delay:300ms]">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-8">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-4">
-                <Search size={14} />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Search</span>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-10">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                  <Search size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Technical Search</span>
+                </div>
+                {searchTerm && (
+                   <span className="px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-500 text-[10px] font-black animate-fade-in">
+                     {filteredProjects.length} MATCHES FOUND
+                   </span>
+                )}
               </div>
+              
               <div className="relative group">
-                <div className="absolute inset-0 bg-brand-500/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-2xl"></div>
+                {/* Focus Glow Overlay */}
+                <div className="absolute inset-0 bg-brand-500/5 blur-2xl opacity-0 group-focus-within:opacity-100 transition-all duration-500 rounded-2xl -z-10"></div>
+                
                 <input 
+                  ref={searchInputRef}
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Filter by title or keywords..."
-                  className="w-full pl-12 pr-12 py-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all shadow-sm placeholder:text-slate-400"
+                  placeholder="Search by project name or description..."
+                  className="w-full pl-14 pr-24 py-5 bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-900 rounded-[1.5rem] text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-600 font-medium"
+                  aria-label="Search projects"
                 />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                {searchTerm && (
-                  <button 
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-500 transition-colors"
-                  >
-                    <X size={18} />
-                  </button>
-                )}
+                
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-brand-500 transition-colors" size={24} strokeWidth={2.5} />
+                
+                {/* Keyboard Hint */}
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  {!searchTerm ? (
+                    <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-400 select-none">
+                      <span className="text-xs">/</span>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setSearchTerm('')}
+                      className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-500 hover:text-brand-500 hover:bg-brand-500/10 transition-all"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="flex-1">
-              <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-4">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
                 <Filter size={14} />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Category Filter</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Filter By Category</span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {allTags.map((tag, idx) => (
                   <button
                     key={tag}
                     onClick={() => setActiveFilter(tag)}
-                    style={{ animationDelay: `${idx * 50}ms` }}
                     className={`
-                      group relative px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-500 flex items-center gap-2 border animate-tag-mount fill-mode-both
+                      group relative px-5 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-500 flex items-center gap-3 border
                       ${activeFilter === tag 
-                        ? 'bg-brand-500 border-brand-500 text-white shadow-lg shadow-brand-500/25 scale-105 z-10' 
-                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-brand-500/50 hover:text-brand-500 hover:scale-[1.05] hover:-translate-y-1'
+                        ? 'bg-brand-500 border-brand-500 text-white shadow-xl shadow-brand-500/25 scale-105 z-10' 
+                        : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-900 text-slate-500 dark:text-slate-400 hover:border-brand-500/50 hover:text-brand-500 hover:scale-[1.05] shadow-sm'
                       }
                     `}
                   >
+                    {tag === 'All' ? <Sparkles size={12} className={activeFilter === tag ? 'text-white' : 'text-brand-500'} /> : <Hash size={12} className="opacity-50" />}
                     {tag}
                     <span className={`
-                      inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-lg text-[9px] font-black transition-colors duration-300
+                      inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-lg text-[9px] font-black transition-colors duration-300
                       ${activeFilter === tag 
                         ? 'bg-white/20 text-white' 
-                        : 'bg-slate-100 dark:bg-slate-900 text-slate-400 group-hover:bg-brand-500/10 group-hover:text-brand-500'
+                        : 'bg-slate-50 dark:bg-slate-900 text-slate-400 group-hover:bg-brand-500/10 group-hover:text-brand-500'
                       }
                     `}>
                       {tagCounts[tag]}
@@ -292,27 +323,21 @@ const Projects: React.FC = () => {
               />
             ))
           ) : (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-              <div className="w-20 h-20 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6 text-slate-300">
-                <Search size={40} />
+            <div className="col-span-full flex flex-col items-center justify-center py-20 text-center animate-fade-in bg-white dark:bg-slate-950 rounded-[3rem] border border-slate-100 dark:border-slate-900 shadow-sm border-dashed">
+              <div className="w-24 h-24 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6 text-slate-300 dark:text-slate-700 relative">
+                <Search size={44} strokeWidth={1.5} />
+                <div className="absolute top-0 right-0 w-6 h-6 bg-red-500 rounded-full border-4 border-white dark:border-slate-950"></div>
               </div>
-              <h3 className="text-2xl font-bold mb-2">No projects found</h3>
-              <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">
-                We couldn't find any projects matching your search "{searchTerm}"{activeFilter !== 'All' ? ` and tag "${activeFilter}"` : ''}. 
-                Try clearing your search or filters.
+              <h3 className="text-3xl font-black mb-3">No matching results</h3>
+              <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-10 font-medium">
+                We couldn't find any projects matching <span className="text-brand-500 font-bold italic">"{searchTerm}"</span> in the <span className="font-bold">{activeFilter}</span> category.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <button 
-                  onClick={() => setSearchTerm('')}
-                  className="px-8 py-3 bg-brand-500 text-white font-bold rounded-2xl hover:bg-brand-600 transition-all shadow-xl shadow-brand-500/20"
+                  onClick={() => { setSearchTerm(''); setActiveFilter('All'); }}
+                  className="px-10 py-4 bg-brand-500 text-white font-black uppercase tracking-widest text-[11px] rounded-2xl hover:bg-brand-600 transition-all shadow-xl shadow-brand-500/20 active:scale-95"
                 >
-                  Clear Search
-                </button>
-                <button 
-                  onClick={() => setActiveFilter('All')}
-                  className="px-8 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-bold rounded-2xl hover:text-brand-500 transition-all shadow-sm"
-                >
-                  Show All Tags
+                  Reset All Filters
                 </button>
               </div>
             </div>
@@ -336,7 +361,6 @@ const Projects: React.FC = () => {
             </button>
 
             <div className="flex flex-col lg:flex-row h-full">
-              {/* Media Section */}
               <div className="w-full lg:w-[45%] relative bg-slate-100 dark:bg-slate-900 aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800">
                 {isModalImageLoading && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10">
@@ -352,22 +376,10 @@ const Projects: React.FC = () => {
                   onLoad={() => setIsModalImageLoading(false)}
                   className={`w-full h-full object-cover transition-all duration-1000 ease-out ${isModalImageLoading ? 'opacity-0 scale-110' : 'opacity-100 scale-100'}`}
                 />
-                <div className="absolute bottom-6 left-6 right-6 p-6 bg-slate-950/40 backdrop-blur-md rounded-2xl border border-white/10 hidden lg:block">
-                    <div className="flex items-center gap-3 text-white">
-                        <Box size={20} className="text-brand-400" />
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-400">Project Asset</p>
-                            <p className="text-xs font-bold opacity-80">Primary Interface Visual</p>
-                        </div>
-                    </div>
-                </div>
               </div>
 
-              {/* Content Section */}
               <div className="w-full lg:w-[55%] p-8 sm:p-12 overflow-y-auto bg-white dark:bg-slate-950 custom-scrollbar">
                 <div className={`space-y-12 transition-all duration-700 delay-100 ${isModalImageLoading ? 'opacity-0 translate-y-8' : 'opacity-100 translate-y-0'}`}>
-                  
-                  {/* Header */}
                   <div className="space-y-4">
                     <div className="flex items-center text-[10px] font-black text-brand-500 uppercase tracking-[0.4em]">
                       <Sparkles size={14} className="mr-2" /> Technical Case Study
@@ -375,7 +387,6 @@ const Projects: React.FC = () => {
                     <h3 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none">{selectedProject.title}</h3>
                   </div>
 
-                  {/* Overview */}
                   <div className="space-y-6">
                     <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Project Narrative</h4>
                     <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed font-medium">
@@ -383,16 +394,14 @@ const Projects: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Enhanced Detail Section: Key Features */}
                   {selectedProject.keyFeatures && (
                     <div className="space-y-6">
-                      <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Technical Highlights & Accomplishments</h4>
+                      <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Technical Highlights</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {selectedProject.keyFeatures.map((feature, fIdx) => (
                           <div 
                             key={fIdx} 
-                            className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 animate-slide-up"
-                            style={{ animationDelay: `${400 + (fIdx * 100)}ms` }}
+                            className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800"
                           >
                             <CheckCircle2 size={18} className="text-brand-500 shrink-0 mt-0.5" />
                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 leading-snug">{feature}</span>
@@ -402,15 +411,13 @@ const Projects: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Technologies */}
                   <div className="space-y-6">
                     <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Technology Stack</h4>
                     <div className="flex flex-wrap gap-2.5">
                       {selectedProject.tags.map((tag, tIdx) => (
                         <span 
                           key={tIdx} 
-                          className="px-5 py-3 bg-slate-50 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 text-xs font-black uppercase rounded-2xl border border-slate-200 dark:border-slate-800 opacity-0 animate-tag-mount fill-mode-both hover:bg-brand-500 hover:text-white hover:border-brand-500 hover:scale-[1.05] transition-all duration-500 cursor-default"
-                          style={{ animationDelay: `${300 + (tIdx * 50)}ms` }}
+                          className="px-5 py-3 bg-slate-50 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 text-xs font-black uppercase rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-all duration-500 cursor-default"
                         >
                           {tag}
                         </span>
@@ -418,7 +425,6 @@ const Projects: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="pt-10 flex flex-col sm:flex-row gap-5">
                     <a 
                       href={selectedProject.github} 
@@ -428,16 +434,6 @@ const Projects: React.FC = () => {
                     >
                       <Github size={20} className="group-hover:rotate-12 transition-transform" /> Access Repository
                     </a>
-                    {selectedProject.demo && (
-                      <a 
-                        href={selectedProject.demo} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex-1 px-8 py-5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white text-center font-black rounded-2xl transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
-                      >
-                        <ExternalLink size={20} /> View Live Solution
-                      </a>
-                    )}
                   </div>
                 </div>
               </div>
