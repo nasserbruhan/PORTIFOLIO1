@@ -1,10 +1,10 @@
 import React from 'react';
-import { User, GraduationCap, Briefcase, MapPin, Globe } from 'lucide-react';
+import { User, GraduationCap, MapPin, Globe } from 'lucide-react';
 import { CONTACT_INFO } from '../constants';
 
 const About: React.FC = () => {
-  // User provided GitHub link transformed for raw image access
-  const profileImageUrl = "https://github.com/nasserbruhan/PORTIFOLIO/blob/main/e93b9936-6da2-47cd-8ee6-2cd0d5536d93%20(1).jpg?raw=true";
+  // User provided GitHub link transformed for raw image access - Updated to PORTIFOLIO1
+  const profileImageUrl = "https://github.com/nasserbruhan/PORTIFOLIO1/blob/main/e93b9936-6da2-47cd-8ee6-2cd0d5536d93%20(1).jpg?raw=true";
 
   return (
     <section id="about" className="py-24 bg-slate-50 dark:bg-slate-900/30 overflow-hidden">
